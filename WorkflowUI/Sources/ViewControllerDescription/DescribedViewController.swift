@@ -19,7 +19,7 @@
     import UIKit
 
     public final class DescribedViewController: UIViewController {
-        private(set) var currentViewController: UIViewController
+        private(set) var content: UIViewController
 
         //
 
@@ -27,16 +27,16 @@
 
         //
 
-        public init(description: ViewControllerDescription) {
-            self.currentViewController = description.buildViewController()
+        public init(with description: ViewControllerDescription) {
+            self.content = description.buildViewController()
             super.init(nibName: nil, bundle: nil)
 
-            addChild(currentViewController)
-            currentViewController.didMove(toParent: self)
+            addChild(content)
+            content.didMove(toParent: self)
         }
 
-        public convenience init<S: Screen>(screen: S, environment: ViewEnvironment) {
-            self.init(description: screen.viewControllerDescription(environment: environment))
+        public convenience init<S: Screen>(with screen: S, environment: ViewEnvironment) {
+            self.init(with: screen.viewControllerDescription(environment: environment))
         }
 
         @available(*, unavailable)
@@ -50,19 +50,14 @@
 
         //
 
-        @available(*, deprecated, renamed: "update(with:)")
-        public func update(description: ViewControllerDescription) {
-            update(with: description, animated: false)
-        }
-
         public func update(with description: ViewControllerDescription, animated: Bool = false) {
-            if description.canUpdate(viewController: currentViewController) {
-                description.update(viewController: currentViewController)
+            if description.canUpdate(viewController: content) {
+                description.update(viewController: content)
             } else {
-                let old = currentViewController
+                let old = content
                 let new = description.buildViewController()
 
-                currentViewController = new
+                content = new
 
                 if isViewLoaded {
                     addChild(new)
@@ -114,45 +109,45 @@
 
         //
 
-        override public func viewDidLoad() {
-            super.viewDidLoad()
+        override public func loadView() {
+            super.loadView()
 
-            currentViewController.view.frame = view.bounds
-            view.addSubview(currentViewController.view)
+            content.view.frame = view.bounds
+            view.addSubview(content.view)
 
-            preferredContentSize = currentViewController.preferredContentSize
+            preferredContentSize = content.preferredContentSize
         }
 
         override public func viewDidLayoutSubviews() {
             super.viewDidLayoutSubviews()
-            currentViewController.view.frame = view.bounds
+            content.view.frame = view.bounds
         }
 
         override public var childForStatusBarStyle: UIViewController? {
-            return currentViewController
+            return content
         }
 
         override public var childForStatusBarHidden: UIViewController? {
-            return currentViewController
+            return content
         }
 
         override public var childForHomeIndicatorAutoHidden: UIViewController? {
-            return currentViewController
+            return content
         }
 
         override public var childForScreenEdgesDeferringSystemGestures: UIViewController? {
-            return currentViewController
+            return content
         }
 
         override public var supportedInterfaceOrientations: UIInterfaceOrientationMask {
-            return currentViewController.supportedInterfaceOrientations
+            return content.supportedInterfaceOrientations
         }
 
         override public func preferredContentSizeDidChange(forChildContentContainer container: UIContentContainer) {
             super.preferredContentSizeDidChange(forChildContentContainer: container)
 
             guard
-                (container as? UIViewController) == currentViewController,
+                (container as? UIViewController) == content,
                 container.preferredContentSize != preferredContentSize
             else { return }
 
@@ -175,6 +170,29 @@
 
             setNeedsUpdateOfScreenEdgesDeferringSystemGestures()
             setNeedsStatusBarAppearanceUpdate()
+        }
+    }
+
+//
+
+    // MARK: Deprecations
+
+//
+
+    public extension DescribedViewController {
+        @available(*, deprecated, renamed: "init(with:)")
+        convenience init(description: ViewControllerDescription) {
+            self.init(with: description)
+        }
+
+        @available(*, deprecated, renamed: "init(with:environment:)")
+        convenience init<S: Screen>(screen: S, environment: ViewEnvironment) {
+            self.init(with: screen.viewControllerDescription(environment: environment))
+        }
+
+        @available(*, deprecated, renamed: "update(with:)")
+        func update(description: ViewControllerDescription) {
+            update(with: description, animated: false)
         }
     }
 
