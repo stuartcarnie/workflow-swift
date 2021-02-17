@@ -19,11 +19,20 @@
     import UIKit
 
     public final class DescribedViewController: UIViewController {
-        var currentViewController: UIViewController
+        private(set) var currentViewController: UIViewController
+
+        //
+
+        // MARK: Initialization
+
+        //
 
         public init(description: ViewControllerDescription) {
             self.currentViewController = description.buildViewController()
             super.init(nibName: nil, bundle: nil)
+
+            addChild(currentViewController)
+            currentViewController.didMove(toParent: self)
         }
 
         public convenience init<S: Screen>(screen: S, environment: ViewEnvironment) {
@@ -35,36 +44,82 @@
             fatalError("init(coder:) is unavailable")
         }
 
+        //
+
+        // MARK: Updating Content
+
+        //
+
+        @available(*, deprecated, renamed: "update(with:)")
         public func update(description: ViewControllerDescription) {
+            update(with: description, animated: false)
+        }
+
+        public func update(with description: ViewControllerDescription, animated: Bool = false) {
             if description.canUpdate(viewController: currentViewController) {
                 description.update(viewController: currentViewController)
             } else {
+                let old = currentViewController
+                let new = description.buildViewController()
+
+                currentViewController = new
+
                 if isViewLoaded {
-                    currentViewController.willMove(toParent: nil)
-                    currentViewController.view.removeFromSuperview()
-                    currentViewController.removeFromParent()
-                }
-                currentViewController = description.buildViewController()
-                if isViewLoaded {
-                    addChild(currentViewController)
-                    view.addSubview(currentViewController.view)
-                    currentViewController.view.frame = view.bounds
-                    currentViewController.didMove(toParent: self)
-                    preferredContentSize = currentViewController.preferredContentSize
+                    addChild(new)
+                    old.willMove(toParent: nil)
+
+                    description.transition.transition(
+                        from: old.view,
+                        to: new.view,
+                        in: view,
+                        animated: animated,
+                        setup: {
+                            self.view.addSubview(new.view)
+                            self.preferredContentSize = new.preferredContentSize
+
+                            self.currentViewControllerChanged()
+                        },
+                        completion: {
+                            new.didMove(toParent: self)
+
+                            old.view.removeFromSuperview()
+                            old.removeFromParent()
+                        }
+                    )
+
+                } else {
+                    addChild(new)
+                    new.didMove(toParent: self)
+
+                    old.willMove(toParent: nil)
+                    old.removeFromParent()
                 }
             }
         }
 
-        public func update<S: Screen>(screen: S, environment: ViewEnvironment) {
-            update(description: screen.viewControllerDescription(environment: environment))
+        public func update<S: Screen>(
+            screen: S,
+            environment: ViewEnvironment,
+            animated: Bool = false
+        ) {
+            update(
+                with: screen.viewControllerDescription(environment: environment),
+                animated: animated
+            )
         }
+
+        //
+
+        // MARK: UIViewController
+
+        //
 
         override public func viewDidLoad() {
             super.viewDidLoad()
 
-            addChild(currentViewController)
+            currentViewController.view.frame = view.bounds
             view.addSubview(currentViewController.view)
-            currentViewController.didMove(toParent: self)
+
             preferredContentSize = currentViewController.preferredContentSize
         }
 
@@ -102,6 +157,24 @@
             else { return }
 
             preferredContentSize = container.preferredContentSize
+        }
+
+        //
+
+        // MARK: Private
+
+        //
+
+        private func currentViewControllerChanged() {
+            setNeedsFocusUpdate()
+            setNeedsUpdateOfHomeIndicatorAutoHidden()
+
+            if #available(iOS 14.0, *) {
+                self.setNeedsUpdateOfPrefersPointerLocked()
+            }
+
+            setNeedsUpdateOfScreenEdgesDeferringSystemGestures()
+            setNeedsStatusBarAppearanceUpdate()
         }
     }
 

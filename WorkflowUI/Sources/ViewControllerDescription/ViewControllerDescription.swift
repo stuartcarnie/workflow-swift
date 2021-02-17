@@ -21,6 +21,8 @@
     /// A ViewControllerDescription acts as a recipe for building and updating a
     /// specific UIViewController.
     public struct ViewControllerDescription {
+        public var transition: ViewControllerTransition
+
         private let viewControllerType: UIViewController.Type
         private let build: () -> UIViewController
         private let update: (UIViewController) -> Void
@@ -33,11 +35,22 @@
         ///           Typically, should should be able to omit this parameter, but
         ///           in cases where type inference has trouble, it’s offered as
         ///           an escape hatch.
+        ///   - transition: If the underlying view controller type changes, use this
+        ///   Transition to switch between the two view controllers.
         ///   - build: Closure that produces a new instance of the view controller
         ///   - update: Closure that updates the given view controller
-        public init<VC: UIViewController>(type: VC.Type = VC.self, build: @escaping () -> VC, update: @escaping (VC) -> Void) {
+        public init<VC: UIViewController>(
+            type: VC.Type = VC.self,
+            transition: ViewControllerTransition = .none,
+            build: @escaping () -> VC,
+            update: @escaping (VC) -> Void
+        ) {
             self.viewControllerType = type
+
+            self.transition = transition
+
             self.build = build
+
             self.update = { untypedViewController in
                 guard let viewController = untypedViewController as? VC else {
                     fatalError("Unable to update \(untypedViewController), expecting a \(VC.self)")
