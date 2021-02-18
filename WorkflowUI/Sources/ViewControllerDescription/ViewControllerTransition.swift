@@ -99,7 +99,19 @@
         }
 
         static func fade(with duration: TimeInterval) -> Self {
-            fatalError()
+            .init(
+                setup: { context in
+                    context.to.frame = context.container.bounds
+                    context.to.alpha = 0.0
+                },
+                animate: { context in
+                    UIView.animate(withDuration: 0.25) {
+                        context.to.alpha = 1.0
+                    } completion: { _ in
+                        context.setCompleted()
+                    }
+                }
+            )
         }
     }
 

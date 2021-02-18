@@ -21,11 +21,7 @@
     public final class DescribedViewController: UIViewController {
         private(set) var content: UIViewController
 
-        //
-
         // MARK: Initialization
-
-        //
 
         public init(with description: ViewControllerDescription) {
             self.content = description.buildViewController()
@@ -44,11 +40,7 @@
             fatalError("init(coder:) is unavailable")
         }
 
-        //
-
         // MARK: Updating Content
-
-        //
 
         public func update(with description: ViewControllerDescription, animated: Bool = false) {
             if description.canUpdate(viewController: content) {
@@ -103,11 +95,7 @@
             )
         }
 
-        //
-
         // MARK: UIViewController
-
-        //
 
         override public func loadView() {
             super.loadView()
@@ -154,11 +142,7 @@
             preferredContentSize = container.preferredContentSize
         }
 
-        //
-
         // MARK: Private
-
-        //
 
         private func currentViewControllerChanged() {
             setNeedsFocusUpdate()
